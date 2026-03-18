@@ -24,10 +24,12 @@ export type Database = {
           due_at: string | null
           external_reference: string | null
           id: string
+          next_contact_at: string | null
           occurred_at: string | null
           opportunity_id: string | null
           outcome: string | null
           owner_id: string | null
+          priority: string | null
           source_system: string | null
           subject: string
         }
@@ -40,10 +42,12 @@ export type Database = {
           due_at?: string | null
           external_reference?: string | null
           id?: string
+          next_contact_at?: string | null
           occurred_at?: string | null
           opportunity_id?: string | null
           outcome?: string | null
           owner_id?: string | null
+          priority?: string | null
           source_system?: string | null
           subject: string
         }
@@ -56,10 +60,12 @@ export type Database = {
           due_at?: string | null
           external_reference?: string | null
           id?: string
+          next_contact_at?: string | null
           occurred_at?: string | null
           opportunity_id?: string | null
           outcome?: string | null
           owner_id?: string | null
+          priority?: string | null
           source_system?: string | null
           subject?: string
         }
@@ -93,6 +99,7 @@ export type Database = {
           account_value: number | null
           annual_revenue_estimate: number | null
           city: string | null
+          company_type: string | null
           country: string | null
           created_at: string | null
           health_score: number | null
@@ -101,10 +108,14 @@ export type Database = {
           is_stale: boolean | null
           last_activity_at: string | null
           lead_source_id: string | null
+          linkedin_url: string | null
           name: string
           next_follow_up_at: string | null
           notes: string | null
           owner_id: string | null
+          phone: string | null
+          postal_code: string | null
+          priority: string | null
           status: string | null
           updated_at: string | null
           website: string | null
@@ -114,6 +125,7 @@ export type Database = {
           account_value?: number | null
           annual_revenue_estimate?: number | null
           city?: string | null
+          company_type?: string | null
           country?: string | null
           created_at?: string | null
           health_score?: number | null
@@ -122,10 +134,14 @@ export type Database = {
           is_stale?: boolean | null
           last_activity_at?: string | null
           lead_source_id?: string | null
+          linkedin_url?: string | null
           name: string
           next_follow_up_at?: string | null
           notes?: string | null
           owner_id?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          priority?: string | null
           status?: string | null
           updated_at?: string | null
           website?: string | null
@@ -135,6 +151,7 @@ export type Database = {
           account_value?: number | null
           annual_revenue_estimate?: number | null
           city?: string | null
+          company_type?: string | null
           country?: string | null
           created_at?: string | null
           health_score?: number | null
@@ -143,10 +160,14 @@ export type Database = {
           is_stale?: boolean | null
           last_activity_at?: string | null
           lead_source_id?: string | null
+          linkedin_url?: string | null
           name?: string
           next_follow_up_at?: string | null
           notes?: string | null
           owner_id?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          priority?: string | null
           status?: string | null
           updated_at?: string | null
           website?: string | null
@@ -224,6 +245,8 @@ export type Database = {
       contacts: {
         Row: {
           company_id: string | null
+          contact_type: string | null
+          country: string | null
           created_at: string | null
           email: string | null
           first_name: string
@@ -231,14 +254,18 @@ export type Database = {
           is_primary: boolean | null
           last_name: string
           linkedin_url: string | null
+          notes: string | null
           owner_id: string | null
           phone: string | null
+          priority: string | null
           role_in_decision: string | null
           title: string | null
           updated_at: string | null
         }
         Insert: {
           company_id?: string | null
+          contact_type?: string | null
+          country?: string | null
           created_at?: string | null
           email?: string | null
           first_name: string
@@ -246,14 +273,18 @@ export type Database = {
           is_primary?: boolean | null
           last_name: string
           linkedin_url?: string | null
+          notes?: string | null
           owner_id?: string | null
           phone?: string | null
+          priority?: string | null
           role_in_decision?: string | null
           title?: string | null
           updated_at?: string | null
         }
         Update: {
           company_id?: string | null
+          contact_type?: string | null
+          country?: string | null
           created_at?: string | null
           email?: string | null
           first_name?: string
@@ -261,8 +292,10 @@ export type Database = {
           is_primary?: boolean | null
           last_name?: string
           linkedin_url?: string | null
+          notes?: string | null
           owner_id?: string | null
           phone?: string | null
+          priority?: string | null
           role_in_decision?: string | null
           title?: string | null
           updated_at?: string | null

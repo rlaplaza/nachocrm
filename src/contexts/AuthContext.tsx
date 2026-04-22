@@ -1,21 +1,16 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from "@supabase/supabase-js";
-
-type AppRole = "admin" | "manager" | "salesperson";
+import { authService } from "@/services/authService";
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: any | null;
   loading: boolean;
-  role: AppRole;
-  profile: { full_name: string; email: string } | null;
+  role: string;
+  profile: any | null;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  session: null,
   loading: true,
   role: "salesperson",
   profile: null,
@@ -25,64 +20,36 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<AppRole>("salesperson");
-  const [profile, setProfile] = useState<{ full_name: string; email: string } | null>(null);
+  const [role, setRole] = useState("salesperson");
+  const [profile, setProfile] = useState<any | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setTimeout(() => fetchUserData(session.user.id), 0);
+    const unsubscribe = authService.subscribeToAuthChanges(async (firebaseUser) => {
+      setUser(firebaseUser);
+      if (firebaseUser) {
+        const userData = await authService.getUserProfile(firebaseUser.uid);
+        if (userData) {
+          setProfile(userData);
+          setRole(userData.role || "salesperson");
+        }
       } else {
-        setRole("salesperson");
         setProfile(null);
-        setLoading(false);
+        setRole("salesperson");
       }
+      setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
-  async function fetchUserData(userId: string) {
-    const [rolesRes, profileRes] = await Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", userId),
-      supabase.from("profiles").select("full_name, email").eq("user_id", userId).single(),
-    ]);
-
-    if (rolesRes.data?.length) {
-      const roles = rolesRes.data.map((r) => r.role);
-      if (roles.includes("admin")) setRole("admin");
-      else if (roles.includes("manager")) setRole("manager");
-      else setRole("salesperson");
-    }
-
-    if (profileRes.data) {
-      setProfile(profileRes.data);
-    }
-
-    setLoading(false);
-  }
-
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await authService.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, role, profile, signOut }}>
+    <AuthContext.Provider value={{ user, loading, role, profile, signOut }}>
       {children}
     </AuthContext.Provider>
   );

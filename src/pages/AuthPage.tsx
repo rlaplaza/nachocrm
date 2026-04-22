@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { authService } from "@/services/authService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,24 +18,22 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
 
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast({ title: "Login failed", description: error.message, variant: "destructive" });
-      }
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } },
-      });
-      if (error) {
-        toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
+    try {
+      if (isLogin) {
+        await authService.signIn(email, password);
       } else {
-        toast({ title: "Account created", description: "Check your email to confirm your account." });
+        await authService.signUp(email, password, fullName);
+        toast({ title: "Account created", description: "Your account has been created successfully." });
       }
+    } catch (error: any) {
+      toast({ 
+        title: isLogin ? "Login failed" : "Sign up failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

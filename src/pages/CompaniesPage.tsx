@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { dataService } from "@/services/dataService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,7 @@ export default function CompaniesPage() {
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ["companies"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("*").order("name");
+      const data = await dataService.getAll("companies");
       return data || [];
     },
   });
@@ -44,7 +44,7 @@ export default function CompaniesPage() {
       name: string; company_type: string; website: string; linkedin_url: string;
       phone: string; city: string; postal_code: string; notes: string; priority: string; status: string;
     }) => {
-      const { error } = await supabase.from("companies").insert({
+      await dataService.create("companies", {
         ...company,
         company_type: company.company_type || null,
         website: company.website || null,
@@ -53,8 +53,7 @@ export default function CompaniesPage() {
         postal_code: company.postal_code || null,
         notes: company.notes || null,
         owner_id: user!.id,
-      } as any);
-      if (error) throw error;
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });

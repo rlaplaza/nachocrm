@@ -25,12 +25,17 @@ export const dataService = {
       ...data,
       created_at: new Date().toISOString()
     });
-    return docRef.id;
+    return { id: docRef.id, ...data };
   },
   update: async (collectionName: string, id: string, data: any) => {
     await updateDoc(doc(db, collectionName, id), data);
   },
   delete: async (collectionName: string, id: string) => {
     await deleteDoc(doc(db, collectionName, id));
+  },
+  getWhere: async (collectionName: string, field: string, operator: any, value: any) => {
+    const q = query(collection(db, collectionName), where(field, operator, value));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 };

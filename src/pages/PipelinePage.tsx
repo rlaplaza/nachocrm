@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { dataService } from "@/services/dataService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,6 @@ import { Target, Plus, AlertTriangle, Calendar } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import type { Database } from "@/integrations/supabase/types";
-
-type Opportunity = Database["public"]["Tables"]["opportunities"]["Row"];
 
 const STAGES = ["lead", "discovery", "proposal", "negotiation", "closed_won", "closed_lost"] as const;
 
@@ -44,22 +41,27 @@ export default function PipelinePage() {
   const { data: opportunities = [] } = useQuery({
     queryKey: ["opportunities"],
     queryFn: async () => {
-      const { data } = await supabase.from("opportunities").select("*, companies(name)").order("created_at", { ascending: false });
-      return data || [];
+      const oppsData = await dataService.getAll("opportunities");
+      const companiesData = await dataService.getAll("companies");
+      
+      return oppsData.map((opp: any) => ({
+        ...opp,
+        companies: companiesData.find((comp: any) => comp.id === opp.company_id)
+      }));
     },
   });
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").order("name");
+      const data = await dataService.getAll("companies");
       return data || [];
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (opp: { name: string; company_id: string; value: string; stage: string; expected_close_date: string }) => {
-      const { error } = await supabase.from("opportunities").insert({
+      await dataService.create("opportunities", {
         name: opp.name,
         company_id: opp.company_id || null,
         value: parseFloat(opp.value) || 0,
@@ -67,7 +69,6 @@ export default function PipelinePage() {
         expected_close_date: opp.expected_close_date || null,
         owner_id: user!.id,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["opportunities"] });

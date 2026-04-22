@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { dataService } from "@/services/dataService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,40 +36,59 @@ export default function DiscoveryPage() {
   const [transcriptText, setTranscriptText] = useState("");
   const [selectedOppId, setSelectedOppId] = useState("");
 
-  const { data: analyses = [] } = useQuery({
-    queryKey: ["discovery-analyses"],
-    queryFn: async () => {
-      const { data } = await supabase.from("discovery_analyses").select("*, opportunities(name, companies(name))").order("created_at", { ascending: false });
-      return data || [];
-    },
+  const { data: companies = [] } = useQuery({
+    queryKey: ["companies-lookup"],
+    queryFn: () => dataService.getAll("companies"),
   });
 
   const { data: opportunities = [] } = useQuery({
     queryKey: ["opportunities-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("opportunities").select("id, name, companies(name)").order("name");
-      return data || [];
+      const data = await dataService.getAll("opportunities");
+      return (data || []).map((o: any) => ({
+        ...o,
+        companies: { name: companies.find((c: any) => c.id === o.company_id)?.name || "Unknown Company" }
+      })).sort((a: any, b: any) => a.name.localeCompare(b.name));
     },
+    enabled: companies.length > 0,
+  });
+
+  const { data: analyses = [] } = useQuery({
+    queryKey: ["discovery-analyses"],
+    queryFn: async () => {
+      const data = await dataService.getAll("discovery_analyses");
+      return (data || []).map((a: any) => {
+        const opp = opportunities.find((o: any) => o.id === a.opportunity_id);
+        return {
+          ...a,
+          opportunities: opp ? { name: opp.name, companies: opp.companies } : null
+        };
+      }).sort((a: any, b: any) => (b.created_at || "").localeCompare(a.created_at || ""));
+    },
+    enabled: opportunities.length > 0,
   });
 
   const submitMutation = useMutation({
     mutationFn: async () => {
       // Save transcript
-      const { data: transcript, error: tErr } = await supabase.from("transcripts").insert({
+      const transcript = await dataService.create("transcripts", {
         transcript_text: transcriptText,
         opportunity_id: selectedOppId || null,
         source_type: "paste",
-      }).select().single();
-      if (tErr) throw tErr;
+      });
 
-      // Create a placeholder analysis (AI analysis would be triggered via edge function)
-      const { error: aErr } = await supabase.from("discovery_analyses").insert({
+      // Create a placeholder analysis
+      await dataService.create("discovery_analyses", {
         transcript_id: transcript.id,
         opportunity_id: selectedOppId || null,
         summary: "Analysis pending — use the AI analysis edge function to generate scores.",
         score_total: 0,
+        score_pain: 0,
+        score_impact: 0,
+        score_urgency: 0,
+        score_stakeholder: 0,
+        score_next_step: 0,
       });
-      if (aErr) throw aErr;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["discovery-analyses"] });

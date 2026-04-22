@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { dataService } from "@/services/dataService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,15 +31,20 @@ export default function ContactsPage() {
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ["contacts"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("*, companies(name)").order("last_name");
-      return data || [];
+      const contactsData = await dataService.getAll("contacts");
+      const companiesData = await dataService.getAll("companies");
+      
+      return contactsData.map((contact: any) => ({
+        ...contact,
+        companies: companiesData.find((comp: any) => comp.id === contact.company_id)
+      }));
     },
   });
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").order("name");
+      const data = await dataService.getAll("companies");
       return data || [];
     },
   });
@@ -50,7 +55,7 @@ export default function ContactsPage() {
       phone: string; title: string; company_id: string; linkedin_url: string;
       country: string; notes: string; priority: string;
     }) => {
-      const { error } = await supabase.from("contacts").insert({
+      await dataService.create("contacts", {
         first_name: contact.first_name,
         last_name: contact.last_name,
         email: contact.email || null,
@@ -63,8 +68,7 @@ export default function ContactsPage() {
         country: contact.country || null,
         notes: contact.notes || null,
         priority: contact.priority || "medium",
-      } as any);
-      if (error) throw error;
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });

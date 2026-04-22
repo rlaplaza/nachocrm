@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { dataService } from "@/services/dataService";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ export default function CompanyDetailPage() {
   const { data: company } = useQuery({
     queryKey: ["company", id],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("*").eq("id", id!).single();
+      const data = await dataService.getById("companies", id!);
       return data;
     },
     enabled: !!id,
@@ -21,7 +21,7 @@ export default function CompanyDetailPage() {
   const { data: contacts = [] } = useQuery({
     queryKey: ["company-contacts", id],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("*").eq("company_id", id!);
+      const data = await dataService.getWhere("contacts", "company_id", "==", id!);
       return data || [];
     },
     enabled: !!id,
@@ -30,7 +30,7 @@ export default function CompanyDetailPage() {
   const { data: opportunities = [] } = useQuery({
     queryKey: ["company-opportunities", id],
     queryFn: async () => {
-      const { data } = await supabase.from("opportunities").select("*").eq("company_id", id!);
+      const data = await dataService.getWhere("opportunities", "company_id", "==", id!);
       return data || [];
     },
     enabled: !!id,
@@ -39,8 +39,10 @@ export default function CompanyDetailPage() {
   const { data: activities = [] } = useQuery({
     queryKey: ["company-activities", id],
     queryFn: async () => {
-      const { data } = await supabase.from("activities").select("*").eq("company_id", id!).order("occurred_at", { ascending: false }).limit(15);
-      return data || [];
+      const data = await dataService.getWhere("activities", "company_id", "==", id!);
+      return (data || [])
+        .sort((a: any, b: any) => (b.occurred_at || "").localeCompare(a.occurred_at || ""))
+        .slice(0, 15);
     },
     enabled: !!id,
   });

@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { dataService } from "@/services/dataService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Target, Building2, CheckSquare, AlertTriangle, TrendingUp, Activity, Search } from "lucide-react";
@@ -32,36 +32,72 @@ function StatCard({ title, value, subtitle, icon: Icon, trend }: {
 export default function DashboardPage() {
   const { user, role } = useAuth();
 
+  const { data: companies = [] } = useQuery({
+    queryKey: ["companies-lookup"],
+    queryFn: async () => {
+      const data = await dataService.getAll("companies");
+      return data || [];
+    },
+  });
+
+  const getCompanyName = (companyId: string) => {
+    return companies.find((c: any) => c.id === companyId)?.name || "Unknown Company";
+  };
+
   const { data: opportunities = [] } = useQuery({
     queryKey: ["dashboard-opportunities"],
     queryFn: async () => {
-      const { data } = await supabase.from("opportunities").select("*");
-      return data || [];
+      const data = await dataService.getAll("opportunities");
+      return (data || []).map((o: any) => ({
+        ...o,
+        companies: { name: getCompanyName(o.company_id) }
+      }));
     },
+    enabled: companies.length > 0,
   });
 
   const { data: tasks = [] } = useQuery({
     queryKey: ["dashboard-tasks"],
     queryFn: async () => {
-      const { data } = await supabase.from("tasks").select("*, companies(name)").eq("status", "pending").order("due_at", { ascending: true }).limit(10);
-      return data || [];
+      const data = await dataService.getWhere("tasks", "status", "==", "pending");
+      return (data || [])
+        .map((t: any) => ({
+          ...t,
+          companies: { name: getCompanyName(t.company_id) }
+        }))
+        .sort((a: any, b: any) => (a.due_at || "").localeCompare(b.due_at || ""))
+        .slice(0, 10);
     },
+    enabled: companies.length > 0,
   });
 
   const { data: staleOpps = [] } = useQuery({
     queryKey: ["dashboard-stale"],
     queryFn: async () => {
-      const { data } = await supabase.from("opportunities").select("*, companies(name)").eq("is_stale", true).limit(10);
-      return data || [];
+      const data = await dataService.getWhere("opportunities", "is_stale", "==", true);
+      return (data || [])
+        .map((o: any) => ({
+          ...o,
+          companies: { name: getCompanyName(o.company_id) }
+        }))
+        .slice(0, 10);
     },
+    enabled: companies.length > 0,
   });
 
   const { data: recentActivities = [] } = useQuery({
     queryKey: ["dashboard-activities"],
     queryFn: async () => {
-      const { data } = await supabase.from("activities").select("*, companies(name)").order("occurred_at", { ascending: false }).limit(8);
-      return data || [];
+      const data = await dataService.getAll("activities");
+      return (data || [])
+        .map((a: any) => ({
+          ...a,
+          companies: { name: getCompanyName(a.company_id) }
+        }))
+        .sort((a: any, b: any) => (b.occurred_at || "").localeCompare(a.occurred_at || ""))
+        .slice(0, 8);
     },
+    enabled: companies.length > 0,
   });
 
   const totalPipeline = opportunities

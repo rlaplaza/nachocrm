@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { dataService } from "@/services/dataService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,38 +38,49 @@ export default function ActivitiesPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { data: activities = [], isLoading } = useQuery({
-    queryKey: ["activities", typeFilter],
-    queryFn: async () => {
-      let q = supabase.from("activities").select("*, companies(name), contacts(first_name, last_name), opportunities:opportunity_id(name)").order("occurred_at", { ascending: false });
-      if (typeFilter !== "all") q = q.eq("activity_type", typeFilter as any);
-      const { data } = await q.limit(200);
-      return data || [];
-    },
-  });
-
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id, name").order("name");
-      return data || [];
+      const data = await dataService.getAll("companies");
+      return (data || []).sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""));
     },
   });
 
   const { data: contactsList = [] } = useQuery({
     queryKey: ["contacts-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, first_name, last_name").order("last_name");
-      return data || [];
+      const data = await dataService.getAll("contacts");
+      return (data || []).sort((a: any, b: any) => (a.last_name || "").localeCompare(b.last_name || ""));
     },
   });
 
   const { data: opportunitiesList = [] } = useQuery({
     queryKey: ["opportunities-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("opportunities").select("id, name").order("name");
-      return data || [];
+      const data = await dataService.getAll("opportunities");
+      return (data || []).sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""));
     },
+  });
+
+  const { data: activities = [], isLoading } = useQuery({
+    queryKey: ["activities", typeFilter],
+    queryFn: async () => {
+      let data = await dataService.getAll("activities");
+      if (typeFilter !== "all") {
+        data = data.filter((a: any) => a.activity_type === typeFilter);
+      }
+      
+      return (data || []).map((a: any) => ({
+        ...a,
+        companies: { name: companies.find((c: any) => c.id === a.company_id)?.name },
+        contacts: { 
+          first_name: contactsList.find((c: any) => c.id === a.contact_id)?.first_name,
+          last_name: contactsList.find((c: any) => c.id === a.contact_id)?.last_name,
+        },
+        opportunities: { name: opportunitiesList.find((o: any) => o.id === a.opportunity_id)?.name }
+      })).sort((a: any, b: any) => (b.occurred_at || "").localeCompare(a.occurred_at || ""));
+    },
+    enabled: companies.length > 0 || contactsList.length > 0 || opportunitiesList.length > 0,
   });
 
   const createMutation = useMutation({
@@ -78,8 +89,8 @@ export default function ActivitiesPage() {
       contact_id: string; opportunity_id: string; priority: string;
       occurred_at: string; next_contact_at: string;
     }) => {
-      const { error } = await supabase.from("activities").insert({
-        activity_type: activity.activity_type as any,
+      await dataService.create("activities", {
+        activity_type: activity.activity_type,
         subject: activity.subject,
         description: activity.description || null,
         company_id: activity.company_id || null,
@@ -89,8 +100,7 @@ export default function ActivitiesPage() {
         occurred_at: activity.occurred_at || new Date().toISOString(),
         next_contact_at: activity.next_contact_at || null,
         owner_id: user!.id,
-      } as any);
-      if (error) throw error;
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["activities"] });

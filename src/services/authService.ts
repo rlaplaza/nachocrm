@@ -16,5 +16,18 @@ export const authService = {
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? docSnap.data() : null;
   },
+  signIn: async (email: string, password: string) => {
+    return await signInWithEmailAndPassword(auth, email, password);
+  },
+  signUp: async (email: string, password: string, fullName: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    await setDoc(doc(db, "users", user.uid), {
+      email,
+      full_name: fullName,
+      created_at: new Date().toISOString()
+    });
+    return userCredential;
+  },
   signOut: () => firebaseSignOut(auth),
 };

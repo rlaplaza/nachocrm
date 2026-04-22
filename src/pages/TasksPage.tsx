@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { dataService } from "@/services/dataService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,28 +22,35 @@ export default function TasksPage() {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks", showCompleted],
     queryFn: async () => {
-      let q = supabase.from("tasks").select("*, companies(name), opportunities(name)").order("due_at", { ascending: true });
-      if (!showCompleted) q = q.eq("status", "pending");
-      const { data } = await q;
-      return data || [];
+      const tasksData = await dataService.getAll("tasks");
+      const companiesData = await dataService.getAll("companies");
+      const opportunitiesData = await dataService.getAll("opportunities");
+
+      let q = tasksData.map((task: any) => ({
+        ...task,
+        companies: companiesData.find((comp: any) => comp.id === task.company_id),
+        opportunities: opportunitiesData.find((opp: any) => opp.id === task.opportunity_id)
+      }));
+
+      if (!showCompleted) q = q.filter((t: any) => t.status === "pending");
+      
+      return q || [];
     },
   });
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
-      const { error } = await supabase.from("tasks").update({
+      await dataService.update("tasks", id, {
         status: completed ? "completed" : "pending",
         completed_at: completed ? new Date().toISOString() : null,
-      }).eq("id", id);
-      if (error) throw error;
+      });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
   const createMutation = useMutation({
     mutationFn: async (task: { title: string; description: string; priority: string; due_at: string }) => {
-      const { error } = await supabase.from("tasks").insert({ ...task, owner_id: user!.id, due_at: task.due_at || null });
-      if (error) throw error;
+      await dataService.create("tasks", { ...task, owner_id: user!.id, due_at: task.due_at || null });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });

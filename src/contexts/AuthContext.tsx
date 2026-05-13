@@ -1,11 +1,20 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { authService } from "@/services/authService";
+import { User } from "firebase/auth";
+
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  created_at: string;
+}
 
 interface AuthContextType {
-  user: any | null;
+  user: User | null;
   loading: boolean;
   role: string;
-  profile: any | null;
+  profile: UserProfile | null;
   signOut: () => Promise<void>;
 }
 
@@ -20,16 +29,16 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState("salesperson");
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     const unsubscribe = authService.subscribeToAuthChanges(async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        const userData = await authService.getUserProfile(firebaseUser.uid);
+        const userData = await authService.getUserProfile(firebaseUser.uid) as UserProfile | null;
         if (userData) {
           setProfile(userData);
           setRole(userData.role || "salesperson");
@@ -54,3 +63,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
+

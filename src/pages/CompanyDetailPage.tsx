@@ -39,9 +39,9 @@ export default function CompanyDetailPage() {
   const { data: activities = [] } = useQuery({
     queryKey: ["company-activities", id],
     queryFn: async () => {
-      const data = await dataService.getWhere("activities", "company_id", "==", id!);
+      const data = await dataService.getWhere<{ occurred_at: string; id: string; subject: string; activity_type: string }>("activities", "company_id", "==", id!);
       return (data || [])
-        .sort((a: any, b: any) => (b.occurred_at || "").localeCompare(a.occurred_at || ""))
+        .sort((a, b) => (b.occurred_at || "").localeCompare(a.occurred_at || ""))
         .slice(0, 15);
     },
     enabled: !!id,

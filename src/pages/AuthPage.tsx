@@ -25,10 +25,11 @@ export default function AuthPage() {
         await authService.signUp(email, password, fullName);
         toast({ title: "Account created", description: "Your account has been created successfully." });
       }
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "An unexpected error occurred";
       toast({ 
         title: isLogin ? "Login failed" : "Sign up failed", 
-        description: error.message, 
+        description: message, 
         variant: "destructive" 
       });
     } finally {

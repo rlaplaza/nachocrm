@@ -8,7 +8,7 @@ import {
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export const authService = {
-  subscribeToAuthChanges: (callback: (user: any) => void) => {
+  subscribeToAuthChanges: (callback: (user: import("firebase/auth").User | null) => void) => {
     return onAuthStateChanged(auth, callback);
   },
   getUserProfile: async (uid: string) => {

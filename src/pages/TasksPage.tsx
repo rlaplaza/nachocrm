@@ -22,17 +22,17 @@ export default function TasksPage() {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks", showCompleted],
     queryFn: async () => {
-      const tasksData = await dataService.getAll("tasks");
-      const companiesData = await dataService.getAll("companies");
-      const opportunitiesData = await dataService.getAll("opportunities");
+      const tasksData = await dataService.getAll<{ status: string; company_id?: string; opportunity_id?: string; title: string; due_at?: string; priority: string }>("tasks");
+      const companiesData = await dataService.getAll<{ id: string; name: string }>("companies");
+      const opportunitiesData = await dataService.getAll<{ id: string; name: string }>("opportunities");
 
-      let q = tasksData.map((task: any) => ({
+      let q = tasksData.map((task) => ({
         ...task,
-        companies: companiesData.find((comp: any) => comp.id === task.company_id),
-        opportunities: opportunitiesData.find((opp: any) => opp.id === task.opportunity_id)
+        companies: companiesData.find((comp) => comp.id === task.company_id),
+        opportunities: opportunitiesData.find((opp) => opp.id === task.opportunity_id)
       }));
 
-      if (!showCompleted) q = q.filter((t: any) => t.status === "pending");
+      if (!showCompleted) q = q.filter((t) => t.status === "pending");
       
       return q || [];
     },
@@ -132,8 +132,8 @@ export default function TasksPage() {
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm ${isCompleted ? "line-through text-muted-foreground" : ""}`}>{task.title}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                      {task.companies && <span>{(task.companies as any).name}</span>}
-                      {task.opportunities && <span>· {(task.opportunities as any).name}</span>}
+                      {task.companies && <span>{task.companies.name}</span>}
+                      {task.opportunities && <span>· {task.opportunities.name}</span>}
                       {task.due_at && (
                         <span className={`flex items-center gap-1 ${isOverdue ? "text-destructive" : ""}`}>
                           <Clock className="h-3 w-3" />{new Date(task.due_at).toLocaleDateString()}

@@ -41,12 +41,12 @@ export default function PipelinePage() {
   const { data: opportunities = [] } = useQuery({
     queryKey: ["opportunities"],
     queryFn: async () => {
-      const oppsData = await dataService.getAll("opportunities");
-      const companiesData = await dataService.getAll("companies");
+      const oppsData = await dataService.getAll<{ name: string; company_id: string; value: number; stage: string; expected_close_date: string; is_stale: boolean; probability: number; next_step: string; id: string }>("opportunities");
+      const companiesData = await dataService.getAll<{ name: string; id: string }>("companies");
       
-      return oppsData.map((opp: any) => ({
+      return oppsData.map((opp) => ({
         ...opp,
-        companies: companiesData.find((comp: any) => comp.id === opp.company_id)
+        companies: companiesData.find((comp) => comp.id === opp.company_id)
       }));
     },
   });
@@ -54,7 +54,7 @@ export default function PipelinePage() {
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-list"],
     queryFn: async () => {
-      const data = await dataService.getAll("companies");
+      const data = await dataService.getAll<{ name: string; id: string }>("companies");
       return data || [];
     },
   });
@@ -65,7 +65,7 @@ export default function PipelinePage() {
         name: opp.name,
         company_id: opp.company_id || null,
         value: parseFloat(opp.value) || 0,
-        stage: opp.stage as any,
+        stage: opp.stage,
         expected_close_date: opp.expected_close_date || null,
         owner_id: user!.id,
       });
@@ -152,7 +152,7 @@ export default function PipelinePage() {
                           <p className="text-sm font-medium truncate flex-1">{opp.name}</p>
                           {opp.is_stale && <div className="w-2 h-2 rounded-full bg-destructive shrink-0 mt-1" />}
                         </div>
-                        {opp.companies && <p className="text-xs text-muted-foreground">{(opp.companies as any).name}</p>}
+                        {opp.companies && <p className="text-xs text-muted-foreground">{opp.companies.name}</p>}
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium tabular-nums">${Number(opp.value).toLocaleString()}</span>
                           <span className="text-xs text-muted-foreground">{opp.probability}%</span>

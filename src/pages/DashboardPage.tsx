@@ -29,26 +29,46 @@ function StatCard({ title, value, subtitle, icon: Icon, trend }: {
   );
 }
 
+interface Opportunity {
+  id: string;
+  name: string;
+  value: string;
+  stage: string;
+  next_step?: string;
+  discovery_score?: number;
+  company_id: string;
+  companies?: { name: string };
+}
+
+interface ActivityItem {
+  id: string;
+  subject: string;
+  activity_type: string;
+  occurred_at: string;
+  company_id: string;
+  companies?: { name: string };
+}
+
 export default function DashboardPage() {
   const { user, role } = useAuth();
 
-  const { data: companies = [] } = useQuery({
+  const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ["companies-lookup"],
     queryFn: async () => {
-      const data = await dataService.getAll("companies");
+      const data = await dataService.getAll<Company>("companies");
       return data || [];
     },
   });
 
   const getCompanyName = (companyId: string) => {
-    return companies.find((c: any) => c.id === companyId)?.name || "Unknown Company";
+    return companies.find((c) => c.id === companyId)?.name || "Unknown Company";
   };
 
-  const { data: opportunities = [] } = useQuery({
+  const { data: opportunities = [] } = useQuery<Opportunity[]>({
     queryKey: ["dashboard-opportunities"],
     queryFn: async () => {
-      const data = await dataService.getAll("opportunities");
-      return (data || []).map((o: any) => ({
+      const data = await dataService.getAll<Opportunity>("opportunities");
+      return (data || []).map((o) => ({
         ...o,
         companies: { name: getCompanyName(o.company_id) }
       }));
@@ -56,27 +76,27 @@ export default function DashboardPage() {
     enabled: companies.length > 0,
   });
 
-  const { data: tasks = [] } = useQuery({
+  const { data: tasks = [] } = useQuery<(Task & { companies?: { name: string } })[]>({
     queryKey: ["dashboard-tasks"],
     queryFn: async () => {
-      const data = await dataService.getWhere("tasks", "status", "==", "pending");
+      const data = await dataService.getWhere<Task>("tasks", "status", "==", "pending");
       return (data || [])
-        .map((t: any) => ({
+        .map((t) => ({
           ...t,
-          companies: { name: getCompanyName(t.company_id) }
+          companies: { name: getCompanyName(t.company_id || "") }
         }))
-        .sort((a: any, b: any) => (a.due_at || "").localeCompare(b.due_at || ""))
+        .sort((a, b) => (a.due_at || "").localeCompare(b.due_at || ""))
         .slice(0, 10);
     },
     enabled: companies.length > 0,
   });
 
-  const { data: staleOpps = [] } = useQuery({
+  const { data: staleOpps = [] } = useQuery<Opportunity[]>({
     queryKey: ["dashboard-stale"],
     queryFn: async () => {
-      const data = await dataService.getWhere("opportunities", "is_stale", "==", true);
+      const data = await dataService.getWhere<Opportunity>("opportunities", "is_stale", "==", true);
       return (data || [])
-        .map((o: any) => ({
+        .map((o) => ({
           ...o,
           companies: { name: getCompanyName(o.company_id) }
         }))
@@ -85,16 +105,16 @@ export default function DashboardPage() {
     enabled: companies.length > 0,
   });
 
-  const { data: recentActivities = [] } = useQuery({
+  const { data: recentActivities = [] } = useQuery<ActivityItem[]>({
     queryKey: ["dashboard-activities"],
     queryFn: async () => {
-      const data = await dataService.getAll("activities");
+      const data = await dataService.getAll<ActivityItem>("activities");
       return (data || [])
-        .map((a: any) => ({
+        .map((a) => ({
           ...a,
           companies: { name: getCompanyName(a.company_id) }
         }))
-        .sort((a: any, b: any) => (b.occurred_at || "").localeCompare(a.occurred_at || ""))
+        .sort((a, b) => (b.occurred_at || "").localeCompare(a.occurred_at || ""))
         .slice(0, 8);
     },
     enabled: companies.length > 0,
@@ -195,7 +215,7 @@ export default function DashboardPage() {
                         <p className="text-sm truncate">{task.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {task.due_at ? new Date(task.due_at).toLocaleDateString() : "No due date"}
-                          {task.companies && ` · ${(task.companies as any).name}`}
+                          {task.companies && ` · ${task.companies.name}`}
                         </p>
                       </div>
                       {isOverdue && <Badge variant="destructive" className="text-[10px] shrink-0">Overdue</Badge>}
@@ -223,7 +243,7 @@ export default function DashboardPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm truncate">{opp.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {opp.companies && (opp.companies as any).name} · ${Number(opp.value).toLocaleString()}
+                        {opp.companies && opp.companies.name} · ${Number(opp.value).toLocaleString()}
                       </p>
                     </div>
                     <Badge variant="outline" className="text-[10px] capitalize shrink-0">{opp.stage.replace("_", " ")}</Badge>
@@ -251,7 +271,7 @@ export default function DashboardPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm truncate">{a.subject}</p>
                     <p className="text-xs text-muted-foreground">
-                      {a.companies && (a.companies as any).name} ·{" "}
+                      {a.companies && a.companies.name} ·{" "}
                       {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString() : ""}
                     </p>
                   </div>

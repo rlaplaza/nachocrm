@@ -14,7 +14,9 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
-const priorityColor = (p: string | null) => {
+import { Company } from "@/types";
+
+const priorityColor = (p: Company["priority"]) => {
   switch (p) {
     case "high": return "bg-destructive/10 text-destructive border-destructive/20";
     case "medium": return "bg-warning/10 text-warning border-warning/20";
@@ -31,27 +33,18 @@ export default function CompaniesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { data: companies = [], isLoading } = useQuery({
+  const { data: companies = [], isLoading } = useQuery<Company[]>({
     queryKey: ["companies"],
     queryFn: async () => {
-      const data = await dataService.getAll("companies");
+      const data = await dataService.getAll<Company>("companies");
       return data || [];
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (company: {
-      name: string; company_type: string; website: string; linkedin_url: string;
-      phone: string; city: string; postal_code: string; notes: string; priority: string; status: string;
-    }) => {
+    mutationFn: async (company: Omit<Company, "id" | "owner_id" | "created_at">) => {
       await dataService.create("companies", {
         ...company,
-        company_type: company.company_type || null,
-        website: company.website || null,
-        linkedin_url: company.linkedin_url || null,
-        phone: company.phone || null,
-        postal_code: company.postal_code || null,
-        notes: company.notes || null,
         owner_id: user!.id,
       });
     },
@@ -63,7 +56,7 @@ export default function CompaniesPage() {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const filtered = companies.filter((c: any) => {
+  const filtered = companies.filter((c: Company) => {
     const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
       (c.company_type || "").toLowerCase().includes(search.toLowerCase()) ||
       (c.city || "").toLowerCase().includes(search.toLowerCase());
@@ -182,7 +175,7 @@ export default function CompaniesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((c: any) => (
+              {filtered.map((c: Company) => (
                 <TableRow key={c.id} className="cursor-pointer hover:bg-muted/30" onClick={() => window.location.href = `/companies/${c.id}`}>
                   <TableCell>
                     <Badge variant="outline" className={`${priorityColor(c.priority)} capitalize text-[10px]`}>

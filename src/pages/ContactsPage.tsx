@@ -11,6 +11,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Company } from "@/types";
+
+interface Contact {
+  id: string;
+  first_name: string;
+  last_name: string;
+  contact_type: string;
+  email: string;
+  phone: string;
+  title: string;
+  company_id: string;
+  linkedin_url: string;
+  country: string;
+  notes: string;
+  priority: string;
+  companies?: Company;
+}
 
 const priorityColor = (p: string | null) => {
   switch (p) {
@@ -28,23 +45,23 @@ export default function ContactsPage() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { data: contacts = [], isLoading } = useQuery({
+  const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ["contacts"],
     queryFn: async () => {
-      const contactsData = await dataService.getAll("contacts");
-      const companiesData = await dataService.getAll("companies");
+      const contactsData = await dataService.getAll<Contact>("contacts");
+      const companiesData = await dataService.getAll<Company>("companies");
       
-      return contactsData.map((contact: any) => ({
+      return contactsData.map((contact) => ({
         ...contact,
-        companies: companiesData.find((comp: any) => comp.id === contact.company_id)
+        companies: companiesData.find((comp) => comp.id === contact.company_id)
       }));
     },
   });
 
-  const { data: companies = [] } = useQuery({
+  const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ["companies-list"],
     queryFn: async () => {
-      const data = await dataService.getAll("companies");
+      const data = await dataService.getAll<Company>("companies");
       return data || [];
     },
   });
@@ -78,7 +95,7 @@ export default function ContactsPage() {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const filtered = contacts.filter((c: any) =>
+  const filtered = contacts.filter((c) =>
     `${c.first_name} ${c.last_name} ${c.email || ""} ${c.title || ""}`.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -117,7 +134,7 @@ export default function ContactsPage() {
                   <Label>Prioridad</Label>
                   <select name="priority" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                     <option value="high">Alta</option>
-                    <option value="medium" selected>Media</option>
+                    <option value="medium">Media</option>
                     <option value="low">Baja</option>
                   </select>
                 </div>
@@ -168,46 +185,18 @@ export default function ContactsPage() {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="w-[80px]">Prioridad</TableHead>
-                <TableHead>Nombre completo</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Comercial asignado</TableHead>
-                <TableHead>Organización</TableHead>
-                <TableHead>Posición</TableHead>
+                <TableHead>Nombre</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>LinkedIn</TableHead>
-                <TableHead>Teléfono</TableHead>
-                <TableHead>País</TableHead>
-                <TableHead>Notas</TableHead>
+                <TableHead>Organización</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((c: any) => (
+              {filtered.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell>
-                    <Badge variant="outline" className={`${priorityColor(c.priority)} capitalize text-[10px]`}>
-                      {c.priority === "high" ? "Alta" : c.priority === "medium" ? "Media" : "Baja"}
-                    </Badge>
-                  </TableCell>
+                  <TableCell><Badge className={priorityColor(c.priority)}>{c.priority}</Badge></TableCell>
                   <TableCell className="font-medium">{c.first_name} {c.last_name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{c.contact_type || "—"}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{c.owner_id ? "Asignado" : "—"}</TableCell>
-                  <TableCell className="text-sm">{c.companies ? (c.companies as any).name : "—"}</TableCell>
-                  <TableCell className="text-sm">{c.title || "—"}</TableCell>
-                  <TableCell>
-                    {c.email ? (
-                      <a href={`mailto:${c.email}`} className="text-primary hover:underline text-sm">{c.email}</a>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {c.linkedin_url ? (
-                      <a href={c.linkedin_url.startsWith("http") ? c.linkedin_url : `https://${c.linkedin_url}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">
-                        LinkedIn
-                      </a>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell className="text-sm">{c.phone || "—"}</TableCell>
-                  <TableCell className="text-sm">{c.country || "—"}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">{c.notes || "—"}</TableCell>
+                  <TableCell>{c.email}</TableCell>
+                  <TableCell>{c.companies?.name || "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

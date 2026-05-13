@@ -12,6 +12,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Activity, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Company } from "@/types";
+
+interface Contact {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
+interface Opportunity {
+  id: string;
+  name: string;
+}
 
 const priorityColor = (p: string | null) => {
   switch (p) {
@@ -30,6 +42,23 @@ const activityTypeLabel: Record<string, string> = {
   task: "Tarea",
 };
 
+interface ActivityItem {
+  id: string;
+  activity_type: string;
+  subject: string;
+  description: string;
+  company_id: string;
+  contact_id: string;
+  opportunity_id: string;
+  priority: string;
+  occurred_at: string;
+  next_contact_at: string;
+  owner_id: string;
+  companies?: { name: string };
+  contacts?: { first_name: string; last_name: string };
+  opportunities?: { name: string };
+}
+
 export default function ActivitiesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -38,47 +67,47 @@ export default function ActivitiesPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { data: companies = [] } = useQuery({
+  const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ["companies-list"],
     queryFn: async () => {
-      const data = await dataService.getAll("companies");
-      return (data || []).sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""));
+      const data = await dataService.getAll<Company>("companies");
+      return (data || []).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
     },
   });
 
-  const { data: contactsList = [] } = useQuery({
+  const { data: contactsList = [] } = useQuery<Contact[]>({
     queryKey: ["contacts-list"],
     queryFn: async () => {
-      const data = await dataService.getAll("contacts");
-      return (data || []).sort((a: any, b: any) => (a.last_name || "").localeCompare(b.last_name || ""));
+      const data = await dataService.getAll<Contact>("contacts");
+      return (data || []).sort((a, b) => (a.last_name || "").localeCompare(b.last_name || ""));
     },
   });
 
-  const { data: opportunitiesList = [] } = useQuery({
+  const { data: opportunitiesList = [] } = useQuery<Opportunity[]>({
     queryKey: ["opportunities-list"],
     queryFn: async () => {
-      const data = await dataService.getAll("opportunities");
-      return (data || []).sort((a: any, b: any) => (a.name || "").localeCompare(b.name || ""));
+      const data = await dataService.getAll<Opportunity>("opportunities");
+      return (data || []).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
     },
   });
 
-  const { data: activities = [], isLoading } = useQuery({
+  const { data: activities = [], isLoading } = useQuery<ActivityItem[]>({
     queryKey: ["activities", typeFilter],
     queryFn: async () => {
-      let data = await dataService.getAll("activities");
+      let data = await dataService.getAll<ActivityItem>("activities");
       if (typeFilter !== "all") {
-        data = data.filter((a: any) => a.activity_type === typeFilter);
+        data = data.filter((a) => a.activity_type === typeFilter);
       }
       
-      return (data || []).map((a: any) => ({
+      return (data || []).map((a) => ({
         ...a,
-        companies: { name: companies.find((c: any) => c.id === a.company_id)?.name },
+        companies: { name: companies.find((c) => c.id === a.company_id)?.name || "" },
         contacts: { 
-          first_name: contactsList.find((c: any) => c.id === a.contact_id)?.first_name,
-          last_name: contactsList.find((c: any) => c.id === a.contact_id)?.last_name,
+          first_name: contactsList.find((c) => c.id === a.contact_id)?.first_name || "",
+          last_name: contactsList.find((c) => c.id === a.contact_id)?.last_name || "",
         },
-        opportunities: { name: opportunitiesList.find((o: any) => o.id === a.opportunity_id)?.name }
-      })).sort((a: any, b: any) => (b.occurred_at || "").localeCompare(a.occurred_at || ""));
+        opportunities: { name: opportunitiesList.find((o) => o.id === a.opportunity_id)?.name || "" }
+      })).sort((a, b) => (b.occurred_at || "").localeCompare(a.occurred_at || ""));
     },
     enabled: companies.length > 0 || contactsList.length > 0 || opportunitiesList.length > 0,
   });
@@ -110,7 +139,7 @@ export default function ActivitiesPage() {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const filtered = activities.filter((a: any) =>
+  const filtered = activities.filter((a) =>
     a.subject.toLowerCase().includes(search.toLowerCase()) || (a.description || "").toLowerCase().includes(search.toLowerCase())
   );
 
@@ -147,7 +176,7 @@ export default function ActivitiesPage() {
                   <Label>Prioridad</Label>
                   <select name="priority" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                     <option value="high">Alta</option>
-                    <option value="medium" selected>Media</option>
+                    <option value="medium">Media</option>
                     <option value="low">Baja</option>
                   </select>
                 </div>
@@ -171,110 +200,76 @@ export default function ActivitiesPage() {
                 <div className="space-y-2">
                   <Label>Oportunidad</Label>
                   <select name="opportunity_id" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="">Ninguna</option>
-                    {opportunitiesList.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                      <option value="">Seleccione oportunidad</option>
+                      {opportunitiesList.map((opp) => (
+                          <option key={opp.id} value={opp.id}>{opp.name}</option>
+                      ))}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <Label>Contacto</Label>
                   <select name="contact_id" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="">Ninguno</option>
-                    {contactsList.map(c => <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>)}
+                      <option value="">Seleccione contacto</option>
+                      {contactsList.map((c) => (
+                          <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
+                      ))}
                   </select>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Empresa</Label>
                 <select name="company_id" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="">Ninguna</option>
-                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value="">Seleccione empresa</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
                 </select>
               </div>
-              <div className="space-y-2"><Label>Notas</Label><Textarea name="description" rows={3} /></div>
-              <Button type="submit" className="w-full" disabled={createMutation.isPending}>Registrar Actividad</Button>
+              <div className="space-y-2"><Label>Descripción</Label><Textarea name="description" /></div>
+              <Button type="submit" className="w-full">Registrar</Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar actividades..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="call">Llamadas</SelectItem>
-            <SelectItem value="email">Emails</SelectItem>
-            <SelectItem value="meeting">Reuniones</SelectItem>
-            <SelectItem value="note">Notas</SelectItem>
-            <SelectItem value="task">Tareas</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-center gap-2">
+        <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="rounded-md border border-input bg-background px-3 py-2 text-sm">
+          <option value="all">Todas</option>
+          <option value="call">Llamada</option>
+          <option value="email">Email</option>
+          <option value="meeting">Reunión</option>
+          <option value="note">Nota</option>
+          <option value="task">Tarea</option>
+        </select>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Cargando...</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Activity className="h-12 w-12 mx-auto mb-3 opacity-30" />
-          <p>No se encontraron actividades</p>
-        </div>
-      ) : (
-        <div className="rounded-md border overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="w-[80px]">Prioridad</TableHead>
-                <TableHead>Interacción</TableHead>
-                <TableHead>Comercial asignado</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Oportunidad</TableHead>
-                <TableHead>Contacto</TableHead>
-                <TableHead>Notas</TableHead>
-                <TableHead>Fecha próximo contacto</TableHead>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Asunto</TableHead>
+              <TableHead>Empresa</TableHead>
+              <TableHead>Contacto</TableHead>
+              <TableHead>Fecha</TableHead>
+              <TableHead>Prioridad</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((a) => (
+              <TableRow key={a.id}>
+                <TableCell><Badge variant="outline">{activityTypeLabel[a.activity_type] || a.activity_type}</Badge></TableCell>
+                <TableCell className="font-medium">{a.subject}</TableCell>
+                <TableCell>{a.companies?.name || "—"}</TableCell>
+                <TableCell>{a.contacts ? `${a.contacts.first_name} ${a.contacts.last_name}` : "—"}</TableCell>
+                <TableCell>{a.occurred_at ? new Date(a.occurred_at).toLocaleString() : "—"}</TableCell>
+                <TableCell><Badge className={priorityColor(a.priority)}>{a.priority}</Badge></TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((a: any) => (
-                <TableRow key={a.id}>
-                  <TableCell>
-                    <Badge variant="outline" className={`${priorityColor(a.priority)} capitalize text-[10px]`}>
-                      {a.priority === "high" ? "Alta" : a.priority === "medium" ? "Media" : "Baja"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <Badge variant="secondary" className="text-[10px] capitalize mb-1">
-                        {activityTypeLabel[a.activity_type] || a.activity_type}
-                      </Badge>
-                      <p className="text-sm font-medium">{a.subject}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{a.owner_id ? "Asignado" : "—"}</TableCell>
-                  <TableCell className="text-sm">
-                    {a.occurred_at ? new Date(a.occurred_at).toLocaleDateString("es-ES") : "—"}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {a.opportunities ? (a.opportunities as any).name : "—"}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {a.contacts ? `${(a.contacts as any).first_name} ${(a.contacts as any).last_name}` : "—"}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                    {a.description || "—"}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {a.next_contact_at ? new Date(a.next_contact_at).toLocaleDateString("es-ES") : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

@@ -36,19 +36,19 @@ export default function DiscoveryPage() {
   const [transcriptText, setTranscriptText] = useState("");
   const [selectedOppId, setSelectedOppId] = useState("");
 
-  const { data: companies = [] } = useQuery({
+  const { data: companies = [] } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["companies-lookup"],
-    queryFn: () => dataService.getAll("companies"),
+    queryFn: () => dataService.getAll<{ name: string }>("companies"),
   });
 
   const { data: opportunities = [] } = useQuery({
     queryKey: ["opportunities-list"],
     queryFn: async () => {
-      const data = await dataService.getAll("opportunities");
-      return (data || []).map((o: any) => ({
+      const data = await dataService.getAll<{ name: string; company_id: string }>("opportunities");
+      return (data || []).map((o) => ({
         ...o,
-        companies: { name: companies.find((c: any) => c.id === o.company_id)?.name || "Unknown Company" }
-      })).sort((a: any, b: any) => a.name.localeCompare(b.name));
+        companies: { name: companies.find((c) => c.id === o.company_id)?.name || "Unknown Company" }
+      })).sort((a, b) => a.name.localeCompare(b.name));
     },
     enabled: companies.length > 0,
   });
@@ -56,14 +56,14 @@ export default function DiscoveryPage() {
   const { data: analyses = [] } = useQuery({
     queryKey: ["discovery-analyses"],
     queryFn: async () => {
-      const data = await dataService.getAll("discovery_analyses");
-      return (data || []).map((a: any) => {
-        const opp = opportunities.find((o: any) => o.id === a.opportunity_id);
+      const data = await dataService.getAll<{ transcript_id: string; opportunity_id: string; created_at: string }>("discovery_analyses");
+      return (data || []).map((a) => {
+        const opp = opportunities.find((o) => o.id === a.opportunity_id);
         return {
           ...a,
           opportunities: opp ? { name: opp.name, companies: opp.companies } : null
         };
-      }).sort((a: any, b: any) => (b.created_at || "").localeCompare(a.created_at || ""));
+      }).sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
     },
     enabled: opportunities.length > 0,
   });
@@ -148,7 +148,7 @@ export default function DiscoveryPage() {
               <option value="">None</option>
               {opportunities.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.name}{o.companies ? ` (${(o.companies as any).name})` : ""}
+                  {o.name}{o.companies ? ` (${o.companies.name})` : ""}
                 </option>
               ))}
             </select>
@@ -186,7 +186,7 @@ export default function DiscoveryPage() {
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      {a.opportunities && <p className="text-sm font-medium">{(a.opportunities as any).name}</p>}
+                      {(a.opportunities as { name: string }).name && <p className="text-sm font-medium">{(a.opportunities as { name: string }).name}</p>}
                       <p className="text-xs text-muted-foreground">{new Date(a.created_at!).toLocaleDateString()}</p>
                     </div>
                     <div className="text-right">

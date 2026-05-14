@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# Your Web Application
 
 TODO: Document your project here

@@ -8,19 +8,6 @@ import {
   deleteDoc, 
   doc, 
   query, 
-  where 
-} from "firebase/firestore";
-
-import { db } from "@/lib/firebase";
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  query, 
   where,
   WhereFilterOp
 } from "firebase/firestore";

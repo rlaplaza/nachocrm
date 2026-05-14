@@ -1,171 +1,18 @@
-rules_version = '2';
+rules_version='2'
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isAdmin() {
-      return request.auth.token.admin == true;
-    }
-
-    function getUserRole(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role;
-    }
-
-    function isSalespersonOrAdmin(userId) {
-      return isAuthenticated() && 
-        (isOwner(userId) || 
-         isAdmin() || 
-         getUserRole(request.auth.uid) == "sales_manager" ||
-         getUserRole(request.auth.uid) == "admin");
-    }
-
-    // ========== USER PROFILES ==========
-    match /users/{userId} {
-      // Users can read their own profile
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      
-      // Users can create their own profile
-      allow create: if isAuthenticated() && isOwner(userId);
-      
-      // Users can update their own profile
-      allow update: if isAuthenticated() && isOwner(userId);
-      
-      // No one can delete users (use Firebase Admin SDK)
-      allow delete: if false;
-    }
-
-    // ========== COMPANIES ==========
-    match /companies/{companyId} {
-      // Read: Any authenticated user in the same organization
-      allow read: if isAuthenticated();
-      
-      // Create: Any authenticated user
-      allow create: if isAuthenticated();
-      
-      // Update: Owner, admin, or sales manager
-      allow update: if isAuthenticated() && (
-        resource.data.owner_id == request.auth.uid ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-      
-      // Delete: Admin or sales manager only
-      allow delete: if isAuthenticated() && (
-        isAdmin() || 
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-    }
-
-    // ========== CONTACTS ==========
-    match /contacts/{contactId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        resource.data.owner_id == request.auth.uid ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-      allow delete: if isAuthenticated() && (
-        isAdmin() || 
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-    }
-
-    // ========== OPPORTUNITIES ==========
-    match /opportunities/{opportunityId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        resource.data.owner_id == request.auth.uid ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-      allow delete: if isAuthenticated() && (
-        isAdmin() || 
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-    }
-
-    // ========== TASKS ==========
-    match /tasks/{taskId} {
-      // Read: Owner or admin/manager
-      allow read: if isAuthenticated() && (
-        isOwner(resource.data.owner_id) ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-      
-      allow create: if isAuthenticated();
-      
-      // Update: Owner can update their own tasks
-      allow update: if isAuthenticated() && (
-        isOwner(resource.data.owner_id) ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-      
-      allow delete: if isAuthenticated() && (
-        isOwner(resource.data.owner_id) ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-    }
-
-    // ========== ACTIVITIES ==========
-    match /activities/{activityId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        isOwner(resource.data.owner_id) ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-      allow delete: if isAuthenticated() && (
-        isOwner(resource.data.owner_id) ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-    }
-
-    // ========== TRANSCRIPTS ==========
-    match /transcripts/{transcriptId} {
-      allow read: if isAuthenticated() && (
-        isOwner(resource.data.owner_id) ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        isOwner(resource.data.owner_id) ||
-        isAdmin()
-      );
-      allow delete: if isAuthenticated() && (
-        isOwner(resource.data.owner_id) ||
-        isAdmin()
-      );
-    }
-
-    // ========== DISCOVERY ANALYSES ==========
-    match /discovery_analyses/{analysisId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        isOwner(resource.data.owner_id) ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
-      allow delete: if isAuthenticated() && (
-        isOwner(resource.data.owner_id) ||
-        isAdmin() ||
-        getUserRole(request.auth.uid) == "sales_manager"
-      );
+    match /{document=**} {
+      // This rule allows anyone with your database reference to view, edit,
+      // and delete all data in your database. It is useful for getting
+      // started, but it is configured to expire after 30 days because it
+      // leaves your app open to attackers. At that time, all client
+      // requests to your database will be denied.
+      //
+      // Make sure to write security rules for your app before that time, or
+      // else all client requests to your database will be denied until you
+      // update your rules.
+      allow read, write: if request.time < timestamp.date(2026, 6, 13);
     }
   }
 }

@@ -1,4 +1,13 @@
 {
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "NachoCRM",
+        "supportEmail": "support@nachocrm.com"
+      }
+    }
+  },
   "firestore": {
     "database": "(default)",
     "location": "eur3",

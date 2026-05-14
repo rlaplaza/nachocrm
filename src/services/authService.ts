@@ -25,6 +25,7 @@ export const authService = {
     await setDoc(doc(db, "users", user.uid), {
       email,
       full_name: fullName,
+      role: "salesperson",
       created_at: new Date().toISOString()
     });
     return userCredential;

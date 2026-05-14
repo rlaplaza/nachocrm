@@ -11,9 +11,8 @@ build/
 .env.local
 .env.*.local
 
-# Firebase
-firebase.json
-.firebaserc
+# Firebase local config (keep firebase.json and .firebaserc for deployment)
+.firebase/
 
 # IDE
 .idea/

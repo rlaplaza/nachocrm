@@ -20,7 +20,11 @@ export default function ImportPage() {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [entityType, setEntityType] = useState<EntityType>("companies");
-  const [csvData, setCsvData] = useState<any[]>([]);
+  interface CsvRow {
+    [key: string]: string | undefined;
+  }
+
+  const [csvData, setCsvData] = useState<CsvRow[]>([]);
   const [csvFields, setCsvFields] = useState<string[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({});
   const [isImporting, setIsImporting] = useState(false);
@@ -64,7 +68,7 @@ export default function ImportPage() {
     setIsImporting(true);
     try {
       const mappedData = csvData.map(row => {
-        const newRow: any = {};
+        const newRow: Record<string, string | undefined> = {};
         Object.keys(mapping).forEach(targetKey => {
           const csvKey = mapping[targetKey];
           if (csvKey && csvKey !== "none") {
@@ -88,10 +92,10 @@ export default function ImportPage() {
       setCsvData([]);
       setCsvFields([]);
       setMapping({});
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Import failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
       });
     } finally {

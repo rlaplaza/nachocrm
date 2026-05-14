@@ -63,7 +63,7 @@ export default function IntegrationsPage() {
         description: "Your account has been successfully linked.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Connection failed",
         description: error.message,

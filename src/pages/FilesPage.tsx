@@ -29,6 +29,15 @@ export default function FilesPage() {
     },
   });
 
+  interface FileRecord {
+    id: string;
+    file_name: string;
+    file_type: string;
+    storage_path: string;
+    uploaded_by: string;
+    created_at: string;
+  }
+
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!user) throw new Error("User not authenticated");
@@ -63,7 +72,7 @@ export default function FilesPage() {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Upload failed",
         description: error.message || "There was an error uploading your file.",
@@ -74,7 +83,7 @@ export default function FilesPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (file: any) => {
+    mutationFn: async (file: FileRecord) => {
       // 1. Delete from storage
       const { error: storageError } = await supabase.storage
         .from("crm-files")
@@ -97,7 +106,7 @@ export default function FilesPage() {
         description: "The file has been removed.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Delete failed",
         description: error.message || "There was an error deleting the file.",
@@ -127,10 +136,10 @@ export default function FilesPage() {
       a.download = fileName;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Download failed",
-        description: error.message || "There was an error downloading the file.",
+        description: error instanceof Error ? error.message : "There was an error downloading the file.",
         variant: "destructive",
       });
     }

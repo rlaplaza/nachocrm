@@ -91,7 +91,18 @@ export default function AdminUsersPage() {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const filtered = users.filter((u: any) => 
+  interface UserWithRole {
+    id: string;
+    user_id: string;
+    full_name: string;
+    email: string;
+    role: AppRole;
+    role_id?: string;
+    is_active?: boolean;
+    updated_at?: string;
+  }
+
+  const filtered = users.filter((u: UserWithRole) => 
     (u.full_name || "").toLowerCase().includes(search.toLowerCase()) ||
     (u.email || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -141,7 +152,7 @@ export default function AdminUsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((u: any) => (
+              {filtered.map((u: UserWithRole) => (
                 <TableRow key={u.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium">{u.full_name || "Sin nombre"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{u.email || "Sin email"}</TableCell>
